@@ -311,7 +311,7 @@ function synthesizeSpeechToBase64(text) {
 }
 
 app.get("/", (req, res) => {
-  res.json({ message: "Voice Memo Analyzer backend is running." });
+  res.json({ message: "Murmur backend is running." });
 });
 
 app.post("/transcribe", upload.single("audio"), async (req, res) => {
@@ -444,6 +444,25 @@ app.post("/process", upload.single("audio"), async (req, res) => {
     return res.status(500).json({
       error: "Pipeline processing failed.",
       details: msg,
+    });
+  }
+});
+
+app.post("/speak", async (req, res) => {
+  const text = req.body?.text;
+  if (!text || typeof text !== "string" || !text.trim()) {
+    return res.status(400).json({
+      error: 'Request body must include a non-empty "text" field.',
+    });
+  }
+
+  try {
+    const audio_base64 = await synthesizeSpeechToBase64(text.trim());
+    return res.json({ audio_base64 });
+  } catch (err) {
+    return res.status(500).json({
+      error: "Speech synthesis failed.",
+      details: err?.message || "Unknown error",
     });
   }
 });

@@ -578,6 +578,34 @@ app.post("/process", upload.single("audio"), async (req, res) => {
   }
 });
 
+app.post("/speak", async (req, res) => {
+  const text = req.body?.text;
+  if (!text || typeof text !== "string" || !text.trim()) {
+    return res.status(400).json({
+      error: 'Request body must include a non-empty "text" field.',
+    });
+  }
+
+  try {
+    await tracer.startActiveSpan("stage.speak", async (span) => {
+      try {
+        const t0 = performance.now();
+        const result = await synthesizeSpeechToBase64(text.trim());
+        span.setAttribute("char_count", result.charCount);
+        span.setAttribute("duration_ms", performance.now() - t0);
+        res.json({ audio_base64: result.audioBase64 });
+      } finally {
+        span.end();
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({
+      error: "Speech synthesis failed.",
+      details: err?.message || "Unknown error",
+    });
+  }
+});
+
 app.get("/telemetry-summary", (req, res) => {
   if (sessionLog.length === 0) {
     return res.json({ message: "No calls yet" });

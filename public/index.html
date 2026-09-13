@@ -3,369 +3,108 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Voice Memo Analyzer</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 0 16px;
-      line-height: 1.5;
-    }
-    h1 { margin-bottom: 8px; }
-    .card {
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      padding: 16px;
-      margin-bottom: 20px;
-    }
-    button {
-      margin-right: 10px;
-      margin-top: 10px;
-      padding: 10px 14px;
-      cursor: pointer;
-    }
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.6;
-    }
-    .tag {
-      display: inline-block;
-      background: #eef2ff;
-      border-radius: 999px;
-      padding: 6px 10px;
-      margin: 4px 6px 4px 0;
-      font-size: 14px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-      vertical-align: top;
-    }
-    th { background: #f7f7f7; }
-    .hidden { display: none; }
-    pre {
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      background: #fafafa;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid #eee;
-    }
-    .muted { color: #666; }
-  </style>
+  <title>Murmur — AI Voice Notes</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <h1>Voice Memo Analyzer</h1>
-  <p class="muted">
-    Record a short voice memo directly in the browser and process it through Speech → Language → TTS.
-  </p>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span class="brand-name">Murmur</span>
+      </div>
 
-  <div class="card">
-    <h2>Input</h2>
+      <nav>
+        <ul class="nav-list" id="navList">
+          <li><button class="nav-item" data-view="all">All Notes <span class="nav-count" id="countAll"></span></button></li>
+          <li><button class="nav-item" data-view="favorites">Favorites <span class="nav-count" id="countFavorites"></span></button></li>
+          <li><button class="nav-item" data-view="tasks">Tasks <span class="nav-count" id="countTasks"></span></button></li>
+          <li><button class="nav-item" data-view="topics">Topics <span class="nav-count" id="countTopics"></span></button></li>
+        </ul>
+      </nav>
 
-    <p><strong>Record your voice memo directly in the browser:</strong></p>
+      <div>
+        <p class="sidebar-section-title">Recent topics</p>
+        <div class="topic-chip-list" id="recentTopicChips"></div>
+      </div>
 
-    <div style="margin-top: 16px;">
-      <button id="startBtn">Start Recording</button>
-      <button id="stopBtn" disabled>Stop Recording</button>
-      <button id="submitBtn" disabled>Submit Recording</button>
+      <p class="sidebar-footer">Voice → transcript → understanding.</p>
+    </aside>
+
+    <div>
+      <div class="mobile-topbar">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <span class="brand-name">Murmur</span>
+        </div>
+      </div>
+
+      <main class="main">
+        <header class="main-header">
+          <div>
+            <h1 class="greeting" id="greeting">Good day</h1>
+            <p class="date-line" id="dateLine"></p>
+          </div>
+          <div class="search-wrap">
+            <span class="search-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
+            <input type="text" class="search-input" id="searchInput" placeholder="Search your thoughts…" />
+          </div>
+        </header>
+
+        <section class="recorder-card" id="recorderCard">
+          <p class="recorder-prompt" id="recorderPrompt">What's on your mind?</p>
+
+          <div class="recorder-controls" id="recorderControls">
+            <button class="mic-button" id="micButton" aria-label="Start recording">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="9" y="2" width="6" height="12" rx="3"/>
+                <path d="M5 10a7 7 0 0 0 14 0"/>
+                <line x1="12" y1="19" x2="12" y2="22"/>
+              </svg>
+            </button>
+
+            <div class="recorder-status" id="recorderStatusWrap">
+              <span class="recorder-status-line" id="recorderStatus">Tap the microphone to start a memo.</span>
+            </div>
+
+            <div class="waveform" id="waveform" hidden></div>
+            <span class="recorder-timer" id="recorderTimer" hidden>0:00</span>
+            <div class="spinner" id="recorderSpinner" hidden></div>
+            <button class="stop-button" id="stopButton" hidden>Stop</button>
+          </div>
+
+          <div class="recorder-error" id="recorderError" hidden>
+            <span id="recorderErrorText"></span>
+            <button class="retry-button" id="retryButton">Retry</button>
+          </div>
+        </section>
+
+        <section id="viewContainer"></section>
+      </main>
     </div>
-
-    <p id="selectedSource" class="muted">No recording yet.</p>
-    <audio id="recordedAudio" controls class="hidden" style="margin-top: 12px; width: 100%;"></audio>
   </div>
 
-  <div class="card">
-    <h2>Status</h2>
-    <p id="statusText">Idle.</p>
-  </div>
+  <nav class="mobile-tabbar">
+    <button class="mobile-tab" data-view="all">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+      All
+    </button>
+    <button class="mobile-tab" data-view="favorites">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-4.35-9.5-8.8C.6 8.6 2.4 5 6 5c2 0 3.3 1 4 2 .7-1 2-2 4-2 3.6 0 5.4 3.6 3.5 7.2C19 16.65 12 21 12 21z"/></svg>
+      Favorites
+    </button>
+    <button class="mobile-tab" data-view="tasks">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Tasks
+    </button>
+    <button class="mobile-tab" data-view="topics">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18M3 12h18"/></svg>
+      Topics
+    </button>
+  </nav>
 
-  <div id="resultsSection" class="hidden">
-    <div class="card">
-      <h2>Transcript</h2>
-      <pre id="transcriptText"></pre>
-      <p id="languageText"></p>
-      <p id="confidenceText"></p>
-      <p id="durationText"></p>
-    </div>
-
-    <div class="card">
-      <h2>Key Phrases</h2>
-      <div id="keyPhrasesContainer"></div>
-    </div>
-
-    <div class="card">
-      <h2>Named Entities</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Text</th>
-            <th>Category</th>
-            <th>Subcategory</th>
-            <th>Confidence</th>
-          </tr>
-        </thead>
-        <tbody id="entitiesTableBody"></tbody>
-      </table>
-    </div>
-
-    <div class="card">
-      <h2>Sentiment</h2>
-      <p id="sentimentLabel"></p>
-      <pre id="sentimentScores"></pre>
-    </div>
-
-    <div class="card">
-      <h2>TTS Summary</h2>
-      <pre id="summaryText"></pre>
-      <audio id="summaryAudio" controls></audio>
-    </div>
-  </div>
-
-  <script>
-    const startBtn = document.getElementById("startBtn");
-    const stopBtn = document.getElementById("stopBtn");
-    const submitBtn = document.getElementById("submitBtn");
-    const selectedSource = document.getElementById("selectedSource");
-    const statusText = document.getElementById("statusText");
-    const recordedAudio = document.getElementById("recordedAudio");
-
-    const resultsSection = document.getElementById("resultsSection");
-    const transcriptText = document.getElementById("transcriptText");
-    const languageText = document.getElementById("languageText");
-    const confidenceText = document.getElementById("confidenceText");
-    const durationText = document.getElementById("durationText");
-    const keyPhrasesContainer = document.getElementById("keyPhrasesContainer");
-    const entitiesTableBody = document.getElementById("entitiesTableBody");
-    const sentimentLabel = document.getElementById("sentimentLabel");
-    const sentimentScores = document.getElementById("sentimentScores");
-    const summaryText = document.getElementById("summaryText");
-    const summaryAudio = document.getElementById("summaryAudio");
-
-    let audioContext = null;
-    let mediaStream = null;
-    let sourceNode = null;
-    let processorNode = null;
-    let pcmChunks = [];
-    let recordedBlob = null;
-    let sampleRate = 44100;
-    let isRecording = false;
-
-    function mergeFloat32Arrays(chunks) {
-      let totalLength = 0;
-      for (const chunk of chunks) totalLength += chunk.length;
-
-      const result = new Float32Array(totalLength);
-      let offset = 0;
-
-      for (const chunk of chunks) {
-        result.set(chunk, offset);
-        offset += chunk.length;
-      }
-
-      return result;
-    }
-
-    function floatTo16BitPCM(view, offset, input) {
-      for (let i = 0; i < input.length; i++, offset += 2) {
-        let s = Math.max(-1, Math.min(1, input[i]));
-        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-      }
-    }
-
-    function writeString(view, offset, string) {
-      for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i));
-      }
-    }
-
-    function encodeWAV(samples, sampleRate) {
-      const buffer = new ArrayBuffer(44 + samples.length * 2);
-      const view = new DataView(buffer);
-
-      writeString(view, 0, "RIFF");
-      view.setUint32(4, 36 + samples.length * 2, true);
-      writeString(view, 8, "WAVE");
-      writeString(view, 12, "fmt ");
-      view.setUint32(16, 16, true);
-      view.setUint16(20, 1, true); // PCM
-      view.setUint16(22, 1, true); // mono
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * 2, true); // byte rate
-      view.setUint16(32, 2, true); // block align
-      view.setUint16(34, 16, true); // bits per sample
-      writeString(view, 36, "data");
-      view.setUint32(40, samples.length * 2, true);
-
-      floatTo16BitPCM(view, 44, samples);
-
-      return new Blob([view], { type: "audio/wav" });
-    }
-
-    async function startRecording() {
-      try {
-        resultsSection.classList.add("hidden");
-        statusText.textContent = "Requesting microphone access...";
-
-        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        audioContext = new AudioContextClass();
-        sampleRate = audioContext.sampleRate;
-
-        sourceNode = audioContext.createMediaStreamSource(mediaStream);
-        processorNode = audioContext.createScriptProcessor(4096, 1, 1);
-
-        pcmChunks = [];
-        recordedBlob = null;
-
-        processorNode.onaudioprocess = function (event) {
-          if (!isRecording) return;
-
-          const inputData = event.inputBuffer.getChannelData(0);
-          pcmChunks.push(new Float32Array(inputData));
-        };
-
-        sourceNode.connect(processorNode);
-        processorNode.connect(audioContext.destination);
-
-        isRecording = true;
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-        submitBtn.disabled = true;
-
-        recordedAudio.classList.add("hidden");
-        recordedAudio.removeAttribute("src");
-
-        selectedSource.textContent = "Recording in progress...";
-        statusText.textContent = "Recording...";
-      } catch (err) {
-        statusText.textContent = "Microphone access failed: " + err.message;
-      }
-    }
-
-    async function stopRecording() {
-      if (!isRecording) return;
-
-      isRecording = false;
-
-      if (processorNode) {
-        processorNode.disconnect();
-      }
-      if (sourceNode) {
-        sourceNode.disconnect();
-      }
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-      }
-      if (audioContext && audioContext.state !== "closed") {
-        await audioContext.close();
-      }
-
-      const mergedSamples = mergeFloat32Arrays(pcmChunks);
-      recordedBlob = encodeWAV(mergedSamples, sampleRate);
-
-      const audioUrl = URL.createObjectURL(recordedBlob);
-      recordedAudio.src = audioUrl;
-      recordedAudio.classList.remove("hidden");
-
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-      submitBtn.disabled = false;
-
-      selectedSource.textContent = "Recording ready to submit: recording.wav";
-      statusText.textContent = "Recording stopped.";
-    }
-
-    startBtn.addEventListener("click", async function () {
-      await startRecording();
-    });
-
-    stopBtn.addEventListener("click", async function () {
-      await stopRecording();
-    });
-
-    submitBtn.addEventListener("click", async function () {
-      if (!recordedBlob) {
-        statusText.textContent = "Please record audio first.";
-        return;
-      }
-
-      resultsSection.classList.add("hidden");
-      statusText.textContent = "Uploading and processing...";
-
-      try {
-        const formData = new FormData();
-        formData.append("audio", recordedBlob, "recording.wav");
-
-        const response = await fetch("/process", {
-          method: "POST",
-          body: formData
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          statusText.textContent = "Error: " + (data.error || "Request failed.");
-          return;
-        }
-
-        statusText.textContent = "Processing complete.";
-        renderResults(data);
-      } catch (err) {
-        statusText.textContent = "Request failed: " + err.message;
-      }
-    });
-
-    function renderResults(data) {
-      resultsSection.classList.remove("hidden");
-
-      transcriptText.textContent = data.transcript || "";
-      languageText.textContent = "Language: " + (data.language || "N/A");
-      confidenceText.textContent = "Confidence: " + (data.confidence ?? "N/A");
-      durationText.textContent = "Duration (seconds): " + (data.duration_seconds ?? "N/A");
-
-      keyPhrasesContainer.innerHTML = "";
-      (data.key_phrases || []).forEach(function (phrase) {
-        const span = document.createElement("span");
-        span.className = "tag";
-        span.textContent = phrase;
-        keyPhrasesContainer.appendChild(span);
-      });
-
-      entitiesTableBody.innerHTML = "";
-      (data.entities || []).forEach(function (entity) {
-        const row = document.createElement("tr");
-        row.innerHTML =
-          "<td>" + (entity.text || "") + "</td>" +
-          "<td>" + (entity.category || "") + "</td>" +
-          "<td>" + (entity.subCategory || "") + "</td>" +
-          "<td>" + (entity.confidenceScore ?? "") + "</td>";
-        entitiesTableBody.appendChild(row);
-      });
-
-      sentimentLabel.textContent = "Sentiment: " + (data.sentiment?.label || "N/A");
-      sentimentScores.textContent = JSON.stringify(
-        data.sentiment?.confidenceScores || {},
-        null,
-        2
-      );
-
-      summaryText.textContent = data.summary_text || "";
-
-      if (data.summary_audio_base64) {
-        summaryAudio.src = "data:audio/mp3;base64," + data.summary_audio_base64;
-      } else {
-        summaryAudio.removeAttribute("src");
-      }
-    }
-  </script>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
